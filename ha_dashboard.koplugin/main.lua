@@ -1,6 +1,7 @@
 local DataStorage = require("datastorage")
 local LuaSettings = require("luasettings")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
+local HAClient = require("ha_client")
 local logger = require("logger")
 local _ = require("gettext")
 
@@ -45,6 +46,8 @@ function HADashboard:loadSettings()
     end
 
     logger.dbg("HADashboard: Using Home Assistant base url " .. self.settings.data.base_url)
+
+    HAClient:useSettings(self.settings.data)
 end
 
 function HADashboard:onFlushSettings()
