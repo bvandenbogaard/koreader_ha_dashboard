@@ -1,4 +1,5 @@
 local MultiInputDialog = require("ui/widget/multiinputdialog")
+local ConfirmBox = require("ui/widget/confirmbox")
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
 local HAClient = require("ha_client")
@@ -45,14 +46,7 @@ function HASettingsDialog:createDialog()
                     end,
                 },
                 {
-                    text = _("Test settings"),
-                    id = "test",
-                    callback = function()
-                        self:testSettings()
-                    end,
-                },
-                {
-                    text = _("Use settings"),
+                    text = _("Test and save"),
                     callback = function()
                         self:useSettings()
                     end,
@@ -77,7 +71,7 @@ function HASettingsDialog:validateFields()
     return fields[1], fields[2], true
 end
 
-function HASettingsDialog:testSettings()
+function HASettingsDialog:useSettings()
     local base_url, token, valid = self:validateFields()
     if not valid then return end
 
@@ -93,32 +87,48 @@ function HASettingsDialog:testSettings()
     UIManager:show(test_msg)
 
     UIManager:scheduleIn(0, function()
-        local result, err = client:getAPIStatus()
+        local result, err = client:getHostStatus()
+        local confirm_settings = function()
+            UIManager:close(test_msg)
 
-        UIManager:close(test_msg)
+            local confirm_msg = ConfirmBox:new {
+                text = _("Test failed: ") .. (err or "unknown error") .. "\n" .. _("Use settings anyway?"),
+                ok_text = _("Yes"),
+                ok_callback = function()
+                    UIManager:close(self.dialog)
+                    if self.onSettingsUpdatedCallback then
+                        self.onSettingsUpdatedCallback(base_url, token, false)
+                    end
+                end,
+                cancel_text = _("No"),
+            }
+
+            UIManager:show(confirm_msg)
+        end
 
         if result then
-            local success_msg = InfoMessage:new {
-                text = _("Settings are correct!"),
-            }
-            UIManager:show(success_msg)
+            result, err = client:getAPIStatus()
+
+            if result then
+                UIManager:close(test_msg)
+                UIManager:close(self.dialog)
+
+                if self.onSettingsUpdatedCallback then
+                    self.onSettingsUpdatedCallback(base_url, token, true)
+                end
+
+                local success_msg = InfoMessage:new {
+                    text = _("Settings are correct and saved!")
+                }
+
+                UIManager:show(success_msg)
+            else
+                confirm_settings()
+            end
         else
-            local error_msg = InfoMessage:new {
-                text = _("Test failed: ") .. (err or "unknown error"),
-            }
-            UIManager:show(error_msg)
+            confirm_settings()
         end
     end)
-end
-
-function HASettingsDialog:useSettings()
-    local base_url, token, valid = self:validateFields()
-    if not valid then return end
-
-    UIManager:close(self.dialog)
-    if self.onSettingsUpdatedCallback then
-        self.onSettingsUpdatedCallback(base_url, token)
-    end
 end
 
 return HASettingsDialog

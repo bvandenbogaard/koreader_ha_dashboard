@@ -1,7 +1,9 @@
 local DataStorage = require("datastorage")
 local LuaSettings = require("luasettings")
+local InfoMessage = require("ui/widget/infomessage")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local HASettingsDialog = require("ha_settings_dialog")
+local UIManager = require("ui/uimanager")
 local logger = require("logger")
 local _ = require("gettext")
 
@@ -41,6 +43,7 @@ function HADashboard:loadSettings()
         logger.dbg("HADashboard: No settings file found, using default settings")
         self.updated = true
         self.settings.data = require("settings")
+        self.show_welcome_message = true
     else
         logger.dbg("HADashboard: Settings file found, using existing settings")
     end
@@ -59,8 +62,9 @@ end
 function HADashboard:open()
     logger.dbg("HADashboard: opened")
 
-    local function onSettingsUpdated(base_url, token)
+    local function onSettingsUpdated(base_url, token, settings_are_valid)
         self.settings.data.base_url = base_url
+        self.settings.data.settings_are_valid = settings_are_valid
         self.settings.data.token = token
         self.updated = true
         self:onFlushSettings()
@@ -68,11 +72,40 @@ function HADashboard:open()
         logger.info("HADashboard: Settings updated")
     end
 
-    HASettingsDialog:new({
-            base_url = self.settings.data.base_url,
-            token = self.settings.data.token
-        },
-        onSettingsUpdated)
+    if self.show_welcome_message then
+        local welcome_msg = InfoMessage:new {
+            text = _("Welcome to the Home Assistant Dashboard!\n"
+                .. "Please set your Home Assistant URL and token in the settings dialog."),
+            dismiss_callback = function()
+                HASettingsDialog:new({
+                        base_url = self.settings.data.base_url,
+                        token = self.settings.data.token
+                    },
+                    onSettingsUpdated)
+                self.show_welcome_message = false
+            end
+        }
+        UIManager:show(welcome_msg)
+    elseif not self.settings.data.settings_are_valid then
+        local welcome_msg = InfoMessage:new {
+            text = _("Welcome to the Home Assistant Dashboard!\n"
+                .. "Please confirm your Home Assistant URL and token in the settings dialog."),
+            dismiss_callback = function()
+                HASettingsDialog:new({
+                        base_url = self.settings.data.base_url,
+                        token = self.settings.data.token
+                    },
+                    onSettingsUpdated)
+            end
+        }
+        UIManager:show(welcome_msg)
+    else
+        HASettingsDialog:new({
+                base_url = self.settings.data.base_url,
+                token = self.settings.data.token
+            },
+            onSettingsUpdated)
+    end
 end
 
 return HADashboard

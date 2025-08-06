@@ -2,6 +2,7 @@ local http = require("socket.http")
 local ltn12 = require("ltn12")
 local json = require("json")
 local logger = require("logger")
+local _ = require("gettext")
 
 local HAClient = {}
 HAClient.__index = HAClient
@@ -15,124 +16,101 @@ function HAClient:new(settings)
     return obj
 end
 
-function HAClient:getAPIStatus()
-    logger.info("HAClient: Checking the availability of the Home Assitant API")
-    local url = string.format("%s/api/", self.base_url)
+function HAClient:_request(method, path, useToken, body)
+    local url = string.format("%s%s", self.base_url, path)
     local response = {}
-    local _, status = http.request {
+    local headers = {}
+
+    if useToken then
+        headers["Authorization"] = "Bearer " .. self.token
+    end
+
+    if body then
+        headers["Content-Length"] = tostring(#body)
+        headers["Content-Type"] = "application/json"
+    end
+
+    local params = {
         url = url,
-        method = "GET",
-        headers = {
-            ["Authorization"] = "Bearer " .. self.token
-        },
+        method = method,
+        headers = headers,
         sink = ltn12.sink.table(response),
     }
 
+    if body then
+        params.source = ltn12.source.string(body)
+    end
+
+    local _, status = http.request(params)
+    return status, table.concat(response)
+end
+
+function HAClient:_handle_response(status, body, success_callback)
     if status == 200 then
-        local resp_str = table.concat(response)
-        local ok, resp_json = pcall(json.decode, resp_str)
-        if ok and type(resp_json) == "table" then
-            return resp_json
+        local ok, data = pcall(json.decode, body)
+        if ok and type(data) == "table" then
+            return success_callback and success_callback(data) or data
         else
             logger.err("HAClient: Failed to parse JSON or response invalid")
-            return nil, "Invalid response"
+            return nil, _("Invalid response")
         end
+    elseif status == 401 then
+        logger.err("HAClient: Token not accepted, check your token")
+        return nil, _("Token not accepted, check your token")
+    elseif status == 403 then
+        logger.err("HAClient: Unexpected API response, check your URL")
+        return nil, _("Unexpected API response, check your URL")
+    elseif status == 404 then
+        logger.err("HAClient: API not found, check your URL")
+        return nil, _("API not found, check your URL")
     else
-        logger.err("HAClient: Failed to get a health check")
-        return nil, "Failed to get a health check"
+        logger.err("HAClient: Request failed with status " .. tostring(status))
+        return nil, _("Request failed with status " .. tostring(status))
     end
+end
+
+function HAClient:getHostStatus()
+    logger.info("HAClient: Checking the availability of the Home Assistant host")
+    local status, body = self:_request("GET", "/", false)
+    if status == 200 then
+        return body
+    else
+        logger.err("HAClient: Host response was not OK, check your URL")
+        return nil, _("Host response was not OK, check your URL")
+    end
+end
+
+function HAClient:getAPIStatus()
+    logger.info("HAClient: Checking the availability of the Home Assistant API")
+    local status, body = self:_request("GET", "/api/", true)
+    return self:_handle_response(status, body)
 end
 
 function HAClient:getAllStates()
     logger.info("HAClient: Getting all states")
-    local url = string.format("%s/api/states", self.base_url)
-    local response = {}
-    local _, status = http.request {
-        url = url,
-        method = "GET",
-        headers = {
-            ["Authorization"] = "Bearer " .. self.token
-        },
-        sink = ltn12.sink.table(response)
-    }
-
-    if status == 200 then
-        local resp_str = table.concat(response)
-        local ok, resp_json = pcall(json.decode, resp_str)
-        if ok and type(resp_json) == "table" then
-            local states_by_id = {}
-            for _, entity in ipairs(resp_json) do
-                if entity.entity_id then
-                    states_by_id[entity.entity_id] = entity
-                end
+    local status, body = self:_request("GET", "/api/states", true)
+    return self:_handle_response(status, body, function(data)
+        local states_by_id = {}
+        for _, entity in ipairs(data) do
+            if entity.entity_id then
+                states_by_id[entity.entity_id] = entity
             end
-            return states_by_id
-        else
-            logger.err("HAClient: Failed to parse JSON or response invalid")
-            return nil, "Invalid response"
         end
-    else
-        logger.err("HAClient: Failed to get all states")
-        return nil, "Failed to get all entity states"
-    end
+        return states_by_id
+    end)
 end
 
 function HAClient:getStateByEntityId(entity_id)
     logger.info("HAClient: Getting state for entity id: " .. entity_id)
-    local url = string.format("%s/api/states/%s", self.base_url, entity_id)
-    local response = {}
-    local _, status = http.request {
-        url = url,
-        method = "GET",
-        headers = {
-            ["Authorization"] = "Bearer " .. self.token
-        },
-        sink = ltn12.sink.table(response)
-    }
-    if status == 200 then
-        local resp_str = table.concat(response)
-        local ok, resp_json = pcall(json.decode, resp_str)
-        if ok then
-            return resp_json
-        else
-            logger.err("HAClient: Failed to parse JSON response")
-            return nil, "Failed to parse JSON"
-        end
-    else
-        logger.err("HAClient: Failed to get state: " .. (status or "nil"))
-        return nil, "Failed to get state"
-    end
+    local status, body = self:_request("GET", "/api/states/" .. entity_id, true)
+    return self:_handle_response(status, body)
 end
 
 function HAClient:callService(domain, service, data)
     logger.info(string.format("HAClient: Calling service '%s.%s' with data: %s", domain, service, json.encode(data)))
-    local url = string.format("%s/api/services/%s/%s", self.base_url, domain, service)
     local body = data and json.encode(data) or "{}"
-    local response = {}
-    local _, status = http.request {
-        url = url,
-        method = "POST",
-        headers = {
-            ["Authorization"] = "Bearer " .. self.token,
-            ["Content-Length"] = tostring(#body),
-            ["Content-Type"] = "application/json"
-        },
-        source = ltn12.source.string(body),
-        sink = ltn12.sink.table(response)
-    }
-    if status == 200 then
-        local resp_str = table.concat(response)
-        local ok, resp_json = pcall(json.decode, resp_str)
-        if ok then
-            return resp_json
-        else
-            logger.err("HAClient: Failed to parse JSON response")
-            return nil, "Failed to parse JSON"
-        end
-    else
-        logger.err("HAClient: Failed to call service: " .. (status or "nil"))
-        return nil, "Failed to call service"
-    end
+    local status, resp_body = self:_request("POST", string.format("/api/services/%s/%s", domain, service), true, body)
+    return self:_handle_response(status, resp_body)
 end
 
 return HAClient
