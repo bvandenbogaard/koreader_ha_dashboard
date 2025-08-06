@@ -26,7 +26,7 @@ return {
 Save it as ```.config/koreader/settings/ha_dashboard.lua```
 
 ## Usage
-Once installed, you can access Home Assistant from the KOReader menu. When you start the dashboard for the first time, the settings dialog will appear. Enter the URL and token, test your settings first by tapping `Test settings` and then tap `Use settings`. A dialog with a list of devices will show.
+Once installed, you can access Home Assistant from the KOReader menu. When you start the dashboard for the first time, the settings dialog will appear. Enter the URL and token and then save your settings by tapping `Test and save`. After the test succeeds, a dialog with a list of devices will show.
 
 ## Features
 - Specify a list of devices you want to control from KOReader
