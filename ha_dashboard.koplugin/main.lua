@@ -1,7 +1,7 @@
 local DataStorage = require("datastorage")
 local LuaSettings = require("luasettings")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
-local HAClient = require("ha_client")
+local HASettingsDialog = require("ha_settings_dialog")
 local logger = require("logger")
 local _ = require("gettext")
 
@@ -21,7 +21,7 @@ function HADashboard:addToMainMenu(menu_items)
 end
 
 function HADashboard:init()
-    logger:setLevel(logger.levels.dbg) --  Set logger level to debug for detailed output
+    logger:setLevel(logger.levels.info) --  Set logger level to info for detailed output
 
     self.loadSettings(self)
     self.ui.menu:registerToMainMenu(self)
@@ -46,20 +46,33 @@ function HADashboard:loadSettings()
     end
 
     logger.dbg("HADashboard: Using Home Assistant base url " .. self.settings.data.base_url)
-
-    HAClient:useSettings(self.settings.data)
 end
 
 function HADashboard:onFlushSettings()
     if self.updated then
         self.settings:flush()
         self.updated = nil
-        logger.dbg("HADashboard: Settings flushed")
+        logger.info("HADashboard: Settings flushed")
     end
 end
 
 function HADashboard:open()
     logger.dbg("HADashboard: opened")
+
+    local function onSettingsUpdated(base_url, token)
+        self.settings.data.base_url = base_url
+        self.settings.data.token = token
+        self.updated = true
+        self:onFlushSettings()
+
+        logger.info("HADashboard: Settings updated")
+    end
+
+    HASettingsDialog:new({
+            base_url = self.settings.data.base_url,
+            token = self.settings.data.token
+        },
+        onSettingsUpdated)
 end
 
 return HADashboard

@@ -4,15 +4,48 @@ local json = require("json")
 local logger = require("logger")
 
 local HAClient = {}
+HAClient.__index = HAClient
 
-function HAClient:useSettings(settings)
-    HAClient.base_url = settings.base_url
-    HAClient.token = settings.token
+function HAClient:new(settings)
+    local obj = {
+        base_url = settings.base_url,
+        token = settings.token,
+    }
+    setmetatable(obj, self)
+    return obj
+end
+
+function HAClient:getAPIStatus()
+    logger.info("HAClient: Checking the availability of the Home Assitant API")
+    local url = string.format("%s/api/", self.base_url)
+    local response = {}
+    local _, status = http.request {
+        url = url,
+        method = "GET",
+        headers = {
+            ["Authorization"] = "Bearer " .. self.token
+        },
+        sink = ltn12.sink.table(response),
+    }
+
+    if status == 200 then
+        local resp_str = table.concat(response)
+        local ok, resp_json = pcall(json.decode, resp_str)
+        if ok and type(resp_json) == "table" then
+            return resp_json
+        else
+            logger.err("HAClient: Failed to parse JSON or response invalid")
+            return nil, "Invalid response"
+        end
+    else
+        logger.err("HAClient: Failed to get a health check")
+        return nil, "Failed to get a health check"
+    end
 end
 
 function HAClient:getAllStates()
     logger.info("HAClient: Getting all states")
-    local url = string.format("%s/states", self.base_url)
+    local url = string.format("%s/api/states", self.base_url)
     local response = {}
     local _, status = http.request {
         url = url,
@@ -35,18 +68,18 @@ function HAClient:getAllStates()
             end
             return states_by_id
         else
-            logger.error("HAClient: Failed to parse JSON or response invalid")
+            logger.err("HAClient: Failed to parse JSON or response invalid")
             return nil, "Invalid response"
         end
     else
-        logger.error("HAClient: Failed to get all states")
+        logger.err("HAClient: Failed to get all states")
         return nil, "Failed to get all entity states"
     end
 end
 
 function HAClient:getStateByEntityId(entity_id)
     logger.info("HAClient: Getting state for entity id: " .. entity_id)
-    local url = string.format("%s/states/%s", self.base_url, entity_id)
+    local url = string.format("%s/api/states/%s", self.base_url, entity_id)
     local response = {}
     local _, status = http.request {
         url = url,
@@ -62,18 +95,18 @@ function HAClient:getStateByEntityId(entity_id)
         if ok then
             return resp_json
         else
-            logger.error("HAClient: Failed to parse JSON response")
+            logger.err("HAClient: Failed to parse JSON response")
             return nil, "Failed to parse JSON"
         end
     else
-        logger.error("HAClient: Failed to get state: " .. (status or "nil"))
+        logger.err("HAClient: Failed to get state: " .. (status or "nil"))
         return nil, "Failed to get state"
     end
 end
 
 function HAClient:callService(domain, service, data)
     logger.info(string.format("HAClient: Calling service '%s.%s' with data: %s", domain, service, json.encode(data)))
-    local url = string.format("%s/services/%s/%s", self.base_url, domain, service)
+    local url = string.format("%s/api/services/%s/%s", self.base_url, domain, service)
     local body = data and json.encode(data) or "{}"
     local response = {}
     local _, status = http.request {
@@ -93,11 +126,11 @@ function HAClient:callService(domain, service, data)
         if ok then
             return resp_json
         else
-            logger.error("HAClient: Failed to parse JSON response")
+            logger.err("HAClient: Failed to parse JSON response")
             return nil, "Failed to parse JSON"
         end
     else
-        logger.error("HAClient: Failed to call service: " .. (status or "nil"))
+        logger.err("HAClient: Failed to call service: " .. (status or "nil"))
         return nil, "Failed to call service"
     end
 end
