@@ -1,6 +1,10 @@
 # KOReader Home Assistant dashboard
 A plugin for KOReader that allows you to control devices connected to Home Assistant.
 
+Got an E-ink eBook reader kicking around with KOReader installed? And do you want to control your smart home with it? Then this plugin will enable you to do so! You can use it while reading or perhaps use it as an always-on low energy wall-mounted display!
+
+**Note:** Hi there! 👋 This plugin is very much work in progress and not usable yet. You're welcome to check in once a while to see progress!
+
 ## Installation
 1. Download the plugin files.
 2. Place the `ha_dashboard.koplugin` folder in the `koreader/plugins` directory.
@@ -24,6 +28,10 @@ return {
 }
 ```
 Save it as ```.config/koreader/settings/ha_dashboard.lua```
+
+If everything works out, you should see this settings screen after a welcome message:
+
+![Settings dialog screenshot showing prefilled settings](settings.png)
 
 ## Usage
 Once installed, you can access Home Assistant from the KOReader menu. When you start the dashboard for the first time, the settings dialog will appear. Enter the URL and token and then save your settings by tapping `Test and save`. After the test succeeds, a dialog with a list of devices will show.
