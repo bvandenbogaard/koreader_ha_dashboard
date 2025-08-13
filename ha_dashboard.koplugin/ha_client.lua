@@ -7,6 +7,13 @@ local _ = require("gettext")
 local HAClient = {}
 HAClient.__index = HAClient
 
+---@class HAClient
+---@field base_url string "Base URL of the Home Assistant instance"
+---@field token string "API token for authentication"
+
+--- Constructor for HAClient.
+---@param settings table "Settings containing base_url and token"
+---@return HAClient "New instance of HAClient"
 function HAClient:new(settings)
     local obj = {
         base_url = settings.base_url,
@@ -16,12 +23,20 @@ function HAClient:new(settings)
     return obj
 end
 
+--- Perform an HTTP request to the Home Assistant API.
+---@private
+---@param method string "HTTP method (GET, POST, etc.)"
+---@param path string "API endpoint path"
+---@param useToken boolean|nil "Whether to use the token for authentication"
+---@param body string|nil "Request body, if applicable"
+---@return number "HTTP status code"
+---@return string "HTTP response body"
 function HAClient:_request(method, path, useToken, body)
     local url = string.format("%s%s", self.base_url, path)
     local response = {}
     local headers = {}
 
-    if useToken then
+    if useToken and self.token then
         headers["Authorization"] = "Bearer " .. self.token
     end
 
@@ -45,6 +60,13 @@ function HAClient:_request(method, path, useToken, body)
     return status, table.concat(response)
 end
 
+--- Handle the response from the Home Assistant API.
+---@private
+---@param status number "HTTP status code"
+---@param body string "Response body"
+---@param success_callback function|nil "Optional callback for successful responses"
+---@return table|nil "Parsed response data or nil if an error occurred"
+---@return string|nil "Error message if an error occurred"
 function HAClient:_handle_response(status, body, success_callback)
     if status == 200 then
         local ok, data = pcall(json.decode, body)
@@ -69,6 +91,9 @@ function HAClient:_handle_response(status, body, success_callback)
     end
 end
 
+--- Check the availability of the Home Assistant host.
+---@return string|nil "Host response or nil if not available"
+---@return string|nil "Error message if the host is not available"
 function HAClient:getHostStatus()
     logger.info("HAClient: Checking the availability of the Home Assistant host")
     local status, body = self:_request("GET", "/", false)
@@ -80,12 +105,18 @@ function HAClient:getHostStatus()
     end
 end
 
+--- Check the availability of the Home Assistant API.
+---@return table|nil "API status or nil if not available"
+---@return string|nil "Error message if the API is not available"
 function HAClient:getAPIStatus()
     logger.info("HAClient: Checking the availability of the Home Assistant API")
     local status, body = self:_request("GET", "/api/", true)
     return self:_handle_response(status, body)
 end
 
+--- Get all states from Home Assistant.
+---@return table|nil "Table of entity states indexed by entity ID or nil if not available"
+---@return string|nil "Error message if the request fails"
 function HAClient:getAllStates()
     logger.info("HAClient: Getting all states")
     local status, body = self:_request("GET", "/api/states", true)
@@ -100,12 +131,22 @@ function HAClient:getAllStates()
     end)
 end
 
+--- Get the state of a specific entity by its ID.
+---@param entity_id string "Entity ID to get the state for"
+---@return table|nil "Entity state or nil if not available"
+---@return string|nil "Error message if the request fails"
 function HAClient:getStateByEntityId(entity_id)
     logger.info("HAClient: Getting state for entity id: " .. entity_id)
     local status, body = self:_request("GET", "/api/states/" .. entity_id, true)
     return self:_handle_response(status, body)
 end
 
+--- Call a service in Home Assistant.
+---@param domain string "Domain of the service (e.g., 'light', 'switch')"
+---@param service string "Service to call (e.g., 'turn_on', 'toggle')"
+---@param data table "Data to send with the service call, if applicable"
+---@return table|nil "Response from the service call or nil if not available"
+---@return string|nil "Error message if the request fails"
 function HAClient:callService(domain, service, data)
     logger.info(string.format("HAClient: Calling service '%s.%s' with data: %s", domain, service, json.encode(data)))
     local body = data and json.encode(data) or "{}"
