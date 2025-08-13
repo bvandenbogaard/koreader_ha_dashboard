@@ -32,6 +32,7 @@ Save it as ```.config/koreader/settings/ha_dashboard.lua```
 If everything works out, you should see this settings screen after a welcome message:
 
 ![Settings dialog screenshot showing prefilled settings](settings.png)
+*(Don't worry, the token in the screenshot is fake.)*
 
 ## Usage
 Once installed, you can access Home Assistant from the KOReader menu. When you start the dashboard for the first time, the settings dialog will appear. Enter the URL and token and then save your settings by tapping `Test and save`. After the test succeeds, a dialog with a list of devices will show.
