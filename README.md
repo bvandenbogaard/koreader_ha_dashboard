@@ -32,6 +32,7 @@ Save it as ```.config/koreader/settings/ha_dashboard.lua```
 If everything works out, you should see this settings screen after a welcome message:
 
 ![Settings dialog screenshot showing prefilled settings](settings.png)
+
 *(Don't worry, the token in the screenshot is fake.)*
 
 ## Usage
