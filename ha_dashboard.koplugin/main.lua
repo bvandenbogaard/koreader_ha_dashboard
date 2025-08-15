@@ -2,7 +2,7 @@ local DataStorage = require("datastorage")
 local LuaSettings = require("luasettings")
 local InfoMessage = require("ui/widget/infomessage")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
-local HAEntitySelectionDialog = require("ha_entity_selection_dialog")
+local HADashboardDialog = require("ha_dashboard_dialog")
 local HASettingsDialog = require("ha_settings_dialog")
 local UIManager = require("ui/uimanager")
 local logger = require("logger")
@@ -136,7 +136,7 @@ function HADashboard:open(settings)
     elseif settings then
         openSettings()
     else
-        HAEntitySelectionDialog:new(self.settings.data, onActionAdded)
+        HADashboardDialog:new(self.settings.data, onActionAdded)
     end
 end
 
