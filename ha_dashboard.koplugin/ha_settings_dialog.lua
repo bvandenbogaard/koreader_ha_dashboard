@@ -9,6 +9,15 @@ local _ = require("gettext")
 local HASettingsDialog = {}
 HASettingsDialog.__index = HASettingsDialog
 
+---@class HASettingsDialog
+---@field settings table "Settings for the dialog"
+---@field dialog any "Dialog instance"
+---@field onSettingsUpdatedCallback function "Callback function when settings are updated"
+
+--- Constructor for HASettingsDialog.
+---@param settings table "Settings containing base_url and token"
+---@param onSettingsUpdatedCallback function "Callback function to be called when settings are updated"
+---@return HASettingsDialog "New instance of HASettingsDialog"
 function HASettingsDialog:new(settings, onSettingsUpdatedCallback)
     local obj = {
         settings = settings or {},
@@ -20,6 +29,7 @@ function HASettingsDialog:new(settings, onSettingsUpdatedCallback)
     return obj
 end
 
+--- Create and show the settings dialog.
 function HASettingsDialog:createDialog()
     self.dialog = MultiInputDialog:new {
         title = _("Home Assistant settings"),
@@ -31,16 +41,13 @@ function HASettingsDialog:createDialog()
             },
             {
                 description = _("Long-lived access token"),
-                text = self.settings.token or "",
-                hint = "",
-                height = 300,
+                text = self.settings.token or ""
             }
         },
         buttons = {
             {
                 {
                     text = _("Cancel"),
-                    id = "close",
                     callback = function()
                         UIManager:close(self.dialog)
                     end,
@@ -59,6 +66,10 @@ function HASettingsDialog:createDialog()
     self.dialog:onShowKeyboard()
 end
 
+--- Validate the fields in the dialog.
+---@return string|nil "Home Assistant URL"
+---@return string|nil "Long-lived access token"
+---@return boolean "True if all fields are valid, false otherwise"
 function HASettingsDialog:validateFields()
     local fields = self.dialog:getFields()
     if fields[1] == "" or fields[2] == "" then
@@ -71,6 +82,7 @@ function HASettingsDialog:validateFields()
     return fields[1], fields[2], true
 end
 
+--- Use the settings from the dialog.
 function HASettingsDialog:useSettings()
     local base_url, token, valid = self:validateFields()
     if not valid then return end
