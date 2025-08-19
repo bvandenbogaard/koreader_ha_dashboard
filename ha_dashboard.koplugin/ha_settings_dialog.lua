@@ -99,47 +99,49 @@ function HASettingsDialog:useSettings()
     UIManager:show(test_msg)
 
     UIManager:scheduleIn(0, function()
-        local result, err = client:getHostStatus()
-        local confirm_settings = function()
-            UIManager:close(test_msg)
-
-            local confirm_msg = ConfirmBox:new {
-                text = _("Test failed: ") .. (err or "unknown error") .. "\n" .. _("Use settings anyway?"),
-                ok_text = _("Yes"),
-                ok_callback = function()
-                    UIManager:close(self.dialog)
-                    if self.onSettingsUpdatedCallback then
-                        self.onSettingsUpdatedCallback(base_url, token, false)
-                    end
-                end,
-                cancel_text = _("No"),
-            }
-
-            UIManager:show(confirm_msg)
-        end
-
-        if result then
-            result, err = client:getAPIStatus()
-
-            if result then
+        coroutine.wrap(function()
+            local result, err = client:getHostStatus()
+            local confirm_settings = function()
                 UIManager:close(test_msg)
-                UIManager:close(self.dialog)
 
-                if self.onSettingsUpdatedCallback then
-                    self.onSettingsUpdatedCallback(base_url, token, true)
-                end
-
-                local success_msg = InfoMessage:new {
-                    text = _("Settings are correct and saved!")
+                local confirm_msg = ConfirmBox:new {
+                    text = _("Test failed: ") .. (err or "unknown error") .. "\n" .. _("Use settings anyway?"),
+                    ok_text = _("Yes"),
+                    ok_callback = function()
+                        UIManager:close(self.dialog)
+                        if self.onSettingsUpdatedCallback then
+                            self.onSettingsUpdatedCallback(base_url, token, false)
+                        end
+                    end,
+                    cancel_text = _("No"),
                 }
 
-                UIManager:show(success_msg)
+                UIManager:show(confirm_msg)
+            end
+
+            if result then
+                result, err = client:getAPIStatus()
+
+                if result then
+                    UIManager:close(test_msg)
+                    UIManager:close(self.dialog)
+
+                    if self.onSettingsUpdatedCallback then
+                        self.onSettingsUpdatedCallback(base_url, token, true)
+                    end
+
+                    local success_msg = InfoMessage:new {
+                        text = _("Settings are correct and saved!")
+                    }
+
+                    UIManager:show(success_msg)
+                else
+                    confirm_settings()
+                end
             else
                 confirm_settings()
             end
-        else
-            confirm_settings()
-        end
+        end)()
     end)
 end
 

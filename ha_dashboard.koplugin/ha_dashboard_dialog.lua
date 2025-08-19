@@ -82,6 +82,18 @@ function HADashboardDialog:_filterStates(all_states)
     return filtered
 end
 
+function HADashboardDialog:updateStates(entity_states)
+    if not self.dialog then
+        return
+    end
+
+    local item_table = self:_buildEntityItems(entity_states)
+
+    self.dialog.item_table = item_table
+    self.dialog:updateItems()
+    UIManager:setDirty(self.dialog, "ui")
+end
+
 --- Render the UI with the given entity states.
 ---@private
 ---@param entity_states table "Table containing entity states"
@@ -139,22 +151,26 @@ function HADashboardDialog:_buildEntityItems(entity_states)
         table.insert(item_table, {
             text = self:_formatEntityText(entity),
             callback = function()
-                local entity_settings = findById(self.settings.entities, entity.entity_id)
-                if entity_settings and entity_settings.action and entity_settings.action.domain and entity_settings.action.service then
-                    local service_response = self.haclient:callService(
-                        entity_settings.action.domain,
-                        entity_settings.action.service,
-                        entity_settings.action.data
-                    )
+                coroutine.wrap(function()
+                    local entity_settings = findById(self.settings.entities, entity.entity_id)
+                    if entity_settings and entity_settings.action and entity_settings.action.domain and entity_settings.action.service then
+                        local service_response = self.haclient:callService(
+                            entity_settings.action.domain,
+                            entity_settings.action.service,
+                            entity_settings.action.data
+                        )
 
-                    if type(service_response) == "table" then
-                        for _, resp in ipairs(service_response) do
-                            if resp.entity_id then
-                                entity_states[resp.entity_id] = resp
+                        if type(service_response) == "table" then
+                            for _, resp in ipairs(service_response) do
+                                if resp.entity_id then
+                                    entity_states[resp.entity_id] = resp
+                                end
                             end
                         end
+
+                        self:updateStates(entity_states)
                     end
-                end
+                end)()
             end,
             hold_callback = function()
                 HAActionDialog:new({

@@ -54,18 +54,20 @@ function HAEntitySelectionDialog:_loadStatesAsync()
     UIManager:show(loading_msg)
 
     UIManager:scheduleIn(0, function()
-        local entity_states, err = self.haclient:getAllStates()
-        UIManager:close(loading_msg)
+        coroutine.wrap(function()
+            local entity_states, err = self.haclient:getAllStates()
+            UIManager:close(loading_msg)
 
-        if not entity_states then
-            UIManager:show(InfoMessage:new {
-                text = string.format(_("Error loading states: %s"), err or "?"),
-                duration = 3,
-            })
-            return
-        end
+            if not entity_states then
+                UIManager:show(InfoMessage:new {
+                    text = string.format(_("Error loading states: %s"), err or "?"),
+                    duration = 3,
+                })
+                return
+            end
 
-        self:_renderUI(entity_states)
+            self:_renderUI(entity_states)
+        end)()
     end)
 end
 
