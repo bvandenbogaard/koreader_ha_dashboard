@@ -3,7 +3,6 @@ local Menu = require("ui/widget/menu")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local Screen = require("device").screen
 local UIManager = require("ui/uimanager")
-local HAClient = require("ha_client")
 local HAActionDialog = require("ha_action_dialog")
 local _ = require("gettext")
 
@@ -11,19 +10,19 @@ local HAEntitySelectionDialog = {}
 HAEntitySelectionDialog.__index = HAEntitySelectionDialog
 
 ---@class HAEntitySelectionDialog
----@field settings table "Settings containing base_url and token"
+---@field main HADashboard "Reference to the main HADashboard instance"
 ---@field dialog any "Dialog instance"
 ---@field onActionAddedCallback fun() "Callback function when an action is added"
 
 --- Constructor for HAEntitySelectionDialog.
----@param settings table "Settings containing base_url and token"
+---@param main HADashboard "Reference to the main HADashboard instance"
 ---@param onActionAddedCallback function "Callback function when an action is added"
 ---@return HAEntitySelectionDialog
-function HAEntitySelectionDialog:new(settings, onActionAddedCallback)
+function HAEntitySelectionDialog:new(main, onActionAddedCallback)
     local obj = {
-        settings = settings or {},
         dialog = nil,
         onActionAddedCallback = onActionAddedCallback,
+        main = main
     }
     setmetatable(obj, self)
     obj:createDialog()
@@ -35,10 +34,6 @@ end
 function HAEntitySelectionDialog:createDialog()
     self.menu_container = CenterContainer:new {
         dimen = Screen:getSize(),
-    }
-    self.haclient = HAClient:new {
-        base_url = self.settings.base_url,
-        token = self.settings.token,
     }
 
     self:_loadStatesAsync()
@@ -55,7 +50,7 @@ function HAEntitySelectionDialog:_loadStatesAsync()
 
     UIManager:scheduleIn(0, function()
         coroutine.wrap(function()
-            local entity_states, err = self.haclient:getAllStates()
+            local entity_states, err = self.main.client:getAllStates()
             UIManager:close(loading_msg)
 
             if not entity_states then

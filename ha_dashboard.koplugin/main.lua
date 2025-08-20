@@ -4,6 +4,7 @@ local InfoMessage = require("ui/widget/infomessage")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local HADashboardDialog = require("ha_dashboard_dialog")
 local HASettingsDialog = require("ha_settings_dialog")
+local HAClient = require("ha_client")
 local UIManager = require("ui/uimanager")
 local logger = require("logger")
 local _ = require("gettext")
@@ -43,11 +44,18 @@ function HADashboard:init()
     self.loadSettings(self)
     self.ui.menu:registerToMainMenu(self)
 
+    self.client = HAClient:new {
+        base_url = self.settings.data.base_url,
+        token = self.settings.data.token,
+    }
+
     logger.dbg("HADashboard: initialized")
 end
 
 --- Clean up the dashboard resources.
 function HADashboard:cleanup()
+    self.client = nil
+
     logger.dbg("HADashboard: cleaned up")
 end
 
@@ -75,6 +83,17 @@ function HADashboard:onFlushSettings()
         self.updated = nil
         logger.info("HADashboard: Settings flushed")
     end
+end
+
+function HADashboard:onSettingsUpdated()
+    logger.dbg("HADashboard: Settings updated")
+    self.updated = true
+    self:onFlushSettings()
+
+    self.client = HAClient:new {
+        base_url = self.settings.data.base_url,
+        token = self.settings.data.token,
+    }
 end
 
 --- Open the Home Assistant Dashboard.
@@ -109,10 +128,7 @@ function HADashboard:open(settings)
     end
 
     local function openSettings()
-        HASettingsDialog:new({
-                base_url = self.settings.data.base_url,
-                token = self.settings.data.token
-            },
+        HASettingsDialog:new(self,
             onSettingsUpdated)
     end
 
@@ -136,7 +152,7 @@ function HADashboard:open(settings)
     elseif settings then
         openSettings()
     else
-        HADashboardDialog:new(self.settings.data, onActionAdded)
+        HADashboardDialog:new(self, onActionAdded)
     end
 end
 

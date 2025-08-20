@@ -10,17 +10,17 @@ local HASettingsDialog = {}
 HASettingsDialog.__index = HASettingsDialog
 
 ---@class HASettingsDialog
----@field settings table "Settings for the dialog"
+---@field main HADashboard "Reference to the main HADashboard instance"
 ---@field dialog any "Dialog instance"
 ---@field onSettingsUpdatedCallback function "Callback function when settings are updated"
 
 --- Constructor for HASettingsDialog.
----@param settings table "Settings containing base_url and token"
+---@param main HADashboard "Reference to the main HADashboard instance"
 ---@param onSettingsUpdatedCallback function "Callback function to be called when settings are updated"
 ---@return HASettingsDialog "New instance of HASettingsDialog"
-function HASettingsDialog:new(settings, onSettingsUpdatedCallback)
+function HASettingsDialog:new(main, onSettingsUpdatedCallback)
     local obj = {
-        settings = settings or {},
+        main = main,
         dialog = nil,
         onSettingsUpdatedCallback = onSettingsUpdatedCallback,
     }
@@ -36,12 +36,12 @@ function HASettingsDialog:createDialog()
         fields = {
             {
                 description = _("Home Assistant URL"),
-                text = self.settings.base_url or "",
+                text = self.main.settings.data.base_url or "",
                 hint = "http://homeassistant.local:8123",
             },
             {
                 description = _("Long-lived access token"),
-                text = self.settings.token or ""
+                text = self.main.settings.data.token or ""
             }
         },
         buttons = {
