@@ -96,6 +96,25 @@ function HADashboard:onSettingsUpdated()
     }
 end
 
+function HADashboard:onNetworkConnected()
+    if self.networkWarning then
+        UIManager:close(self.networkWarning)
+        self.networkWarning = nil
+    end
+end
+
+function HADashboard:onNetworkDisconnected()
+    if self.networkWarning then
+        UIManager:close(self.networkWarning)
+        self.networkWarning = nil
+    end
+
+    self.networkWarning = UIManager:show(InfoMessage:new{
+        text = _("HA Dashboard offline: network disconnected, please check your connection."),
+        icon = "notice-warning"
+    })
+end
+
 --- Open the Home Assistant Dashboard.
 --- @param settings boolean "If true, open the settings dialog instead of the dashboard"
 function HADashboard:open(settings)

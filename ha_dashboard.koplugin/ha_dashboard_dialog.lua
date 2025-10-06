@@ -78,8 +78,18 @@ end
 --- @private
 function HADashboardDialog:_refreshStates()
     local all_states, err = self.main.client:getAllStates()
-    local filtered = self:_filterStates(all_states)
-    self:_updateStates(filtered)
+
+    if all_states == nil then
+        local error_msg = InfoMessage:new {
+            text = string.format(_("HA Dashboard offline: %s"), err or _("unknown error")),
+            timeout = self.pollerInterval,
+            icon = "notice-warning"
+        }
+        UIManager:show(error_msg)
+    else
+        local filtered = self:_filterStates(all_states)
+        self:_updateStates(filtered)
+    end
 
     self.pollerFunctionObject = function()
         self:_refreshStates()
