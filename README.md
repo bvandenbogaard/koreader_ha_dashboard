@@ -51,3 +51,6 @@ Make sure that your Home Assistant URL is correct and does not contain any taili
 ### The token is not accepted
 Make sure that your Home Assistant URL is correct and confirm you can open it in a web browser. The default Home Assistant URL is [http://homeassistant.local:8123](http://homeassistant.local:8123).
 If you also can't access Home Assistant from your web browser, make sure you are not IP banned. This can happen when there were too many failed login attempts. See: https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning
+
+### My device stays disconnected after sleep
+When your device enters sleep, Wi-Fi is switched off. If you want to automatically restore the connection when you wake-up the device, you have to enable the "Restore Wi-Fi connection on resume" option in the network settings. The dashboard will show a warning when the network is disconnected. The warning will automatically disappear once the connection is restored.
