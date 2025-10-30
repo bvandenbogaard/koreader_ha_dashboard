@@ -27,7 +27,9 @@ return {
     ["token"] = "<PASTE YOUR TOKEN HERE>",
 }
 ```
-Save it as ```.config/koreader/settings/ha_dashboard.lua```
+Save it in the location where you installed koreader and then under ```settings/ha_dashboard.lua```
+- For Kobo devices this should be ```.adds/koreader/settings/ha_dashboard.lua```
+- For Kindle devices this should be ```Kindle/koreader/settings/ha_dashboard.lua```
 
 If everything works out, you should see this settings screen after a welcome message:
 
