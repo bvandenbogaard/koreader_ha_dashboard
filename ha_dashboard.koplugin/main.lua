@@ -16,6 +16,9 @@ local _ = require("gettext")
 local HADashboard = WidgetContainer:extend {
     name = "ha_dashboard",
     settings_file = DataStorage:getSettingsDir() .. "/ha_dashboard.lua",
+    client = nil,
+    show_welcome_message = false,
+    dashboard_dialog = nil,
 }
 
 --- Add the dashboard to the main menu.
@@ -97,22 +100,15 @@ function HADashboard:onSettingsUpdated()
 end
 
 function HADashboard:onNetworkConnected()
-    if self.networkWarning then
-        UIManager:close(self.networkWarning)
-        self.networkWarning = nil
+    if self.dashboard_dialog then
+        self.dashboard_dialog:onNetworkConnected()
     end
 end
 
 function HADashboard:onNetworkDisconnected()
-    if self.networkWarning then
-        UIManager:close(self.networkWarning)
-        self.networkWarning = nil
+    if self.dashboard_dialog then
+        self.dashboard_dialog:onNetworkDisconnected()
     end
-
-    self.networkWarning = UIManager:show(InfoMessage:new{
-        text = _("HA Dashboard offline: network disconnected, please check your connection."),
-        icon = "notice-warning"
-    })
 end
 
 --- Open the Home Assistant Dashboard.
@@ -171,7 +167,7 @@ function HADashboard:open(settings)
     elseif settings then
         openSettings()
     else
-        HADashboardDialog:new(self, onActionAdded)
+        self.dashboard_dialog = HADashboardDialog:new(self, onActionAdded)
     end
 end
 

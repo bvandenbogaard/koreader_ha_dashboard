@@ -26,10 +26,30 @@ function HADashboardDialog:new(main, onActionAddedCallback)
         pollerFunctionObject = nil,
         pollerInterval = 30, -- Poll every 30 seconds
         onActionAddedCallback = onActionAddedCallback,
+        networkWarning = nil,
     }
     setmetatable(obj, self)
     obj:createDialog()
     return obj
+end
+
+function HADashboardDialog:onNetworkConnected()
+    if self.networkWarning then
+        UIManager:close(self.networkWarning)
+        self.networkWarning = nil
+    end
+end
+
+function HADashboardDialog:onNetworkDisconnected()
+    if self.networkWarning then
+        UIManager:close(self.networkWarning)
+    end
+
+    self.networkWarning = InfoMessage:new {
+        text = _("HA Dashboard offline: network disconnected, please check your connection."),
+        icon = "notice-warning"
+    }
+    UIManager:show(self.networkWarning)
 end
 
 --- Create and show the entity selection dialog.
